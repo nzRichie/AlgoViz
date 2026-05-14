@@ -13,3 +13,147 @@ body {
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
+
+button {
+  font: inherit;
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: min(1180px, calc(100vw - 3rem));
+  margin: 0 auto;
+  padding: 2rem 0;
+}
+
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.top-bar h1 {
+  margin: 0;
+  color: var(--ctp-lavender);
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  letter-spacing: -0.05em;
+}
+
+.language-selector {
+  display: inline-flex;
+  gap: 0.35rem;
+  padding: 0.35rem;
+  border: 1px solid var(--ctp-surface1);
+  border-radius: 999px;
+  background: var(--ctp-mantle);
+}
+
+.language-selector__tab {
+  position: relative;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ctp-surface0);
+  color: var(--ctp-subtext0);
+  cursor: pointer;
+  padding: 0.5rem 0.85rem;
+}
+
+.language-selector__tab--active {
+  background: var(--ctp-mauve);
+  color: var(--ctp-base);
+}
+
+.language-selector__tab--disabled {
+  color: var(--ctp-overlay0);
+  cursor: not-allowed;
+}
+
+.language-selector__tooltip {
+  position: absolute;
+  inset-block-start: calc(100% + 0.5rem);
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  white-space: nowrap;
+  border-radius: 0.5rem;
+  background: var(--ctp-surface0);
+  color: var(--ctp-subtext0);
+  opacity: 0;
+  padding: 0.25rem 0.5rem;
+  pointer-events: none;
+}
+
+.language-selector__tab--disabled:hover .language-selector__tooltip {
+  opacity: 1;
+}
+
+.editor-panel,
+.visualisation-panel {
+  overflow: hidden;
+  border: 1px solid var(--ctp-surface1);
+  border-radius: 1rem;
+  background: var(--ctp-mantle);
+}
+
+.code-editor {
+  width: 100%;
+  min-height: 400px;
+}
+
+.pin-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  color: var(--ctp-subtext0);
+}
+
+.pin-summary p,
+.visualisation-panel p {
+  margin: 0;
+}
+
+.variable-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--ctp-surface1);
+  border-radius: 999px;
+  background: var(--ctp-surface0);
+  color: var(--ctp-text);
+  padding: 0.4rem 0.65rem;
+}
+
+.variable-badge span {
+  border-radius: 999px;
+  background: var(--ctp-mantle);
+  color: var(--ctp-subtext1);
+  padding: 0.15rem 0.45rem;
+}
+
+.run-button {
+  align-self: flex-start;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ctp-mauve);
+  color: var(--ctp-base);
+  cursor: pointer;
+  font-weight: 700;
+  padding: 0.75rem 1rem;
+}
+
+.run-button:hover:not(:disabled) {
+  background: var(--ctp-lavender);
+}
+
+.run-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.visualisation-panel {
+  min-height: 220px;
+  padding: 1.25rem;
+  color: var(--ctp-subtext0);
+}
