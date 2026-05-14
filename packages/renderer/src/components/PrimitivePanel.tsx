@@ -13,8 +13,11 @@ export default function PrimitivePanel({ snapshot }: PrimitivePanelProps) {
     <article className="viz-panel">
       <h3>{snapshot.name}</h3>
       <motion.div
-        animate={{ backgroundColor: changed ? 'var(--ctp-mauve)' : 'var(--ctp-surface0)' }}
-        className="primitive-cell"
+        animate={{
+          backgroundColor: changed ? 'var(--ctp-mauve)' : 'var(--ctp-surface0)',
+          color: changed ? 'var(--ctp-base)' : 'var(--ctp-text)',
+        }}
+        className={changed ? 'primitive-cell primitive-cell--changed' : 'primitive-cell'}
         transition={{ duration: 0.25 }}
       >
         {value}

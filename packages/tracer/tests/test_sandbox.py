@@ -37,3 +37,33 @@ def test_import_os_is_blocked():
 
     assert result.error is not None
     assert result.error.kind == "sandbox"
+
+
+def test_blocklist_ignores_from_in_comments():
+    source = """# transforming to/from an empty string
+x = 1
+"""
+    result = run_sandboxed(source)
+
+    assert result.error is None
+    assert result.namespace["x"] == 1
+
+
+def test_blocklist_still_blocks_inline_from_import():
+    result = run_sandboxed("from os import path")
+
+    assert result.error is not None
+    assert result.error.kind == "sandbox"
+
+
+def test_hash_inside_string_does_not_start_comment():
+    result = run_sandboxed('x = "a#b"\ny = 1')
+
+    assert result.error is None
+    assert result.namespace["x"] == "a#b"
+
+
+def test_inline_end_of_line_comment_ignored_for_blocklist():
+    result = run_sandboxed("x = 1  # import os would be bad")
+
+    assert result.error is None

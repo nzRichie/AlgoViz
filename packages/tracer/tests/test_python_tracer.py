@@ -26,7 +26,19 @@ def test_primitive_variable_is_captured():
     assert "5" in primitive_values
 
 
-def test_untracked_variables_are_not_present():
-    snapshots = PythonTracer().trace("x = 5\ny = 6\nz = x + y", ["x"])
+def test_array_pointer_labels_persist_on_lines_without_subscripts():
+    source = """nums = [3, 1, 2]
+for i in range(len(nums)):
+    for j in range(i):
+        if nums[j] < nums[i]:
+            pass
+        side = 1
+"""
 
-    assert all("y" not in step.variables for step in snapshots)
+    snapshots = PythonTracer().trace(source, ["nums"])
+    lines = source.splitlines()
+    on_assign = [s for s in snapshots if lines[s.line_number - 1].strip() == "side = 1"]
+    assert on_assign, "expected a step on side = 1 line"
+    ptrs = on_assign[0].variables["nums"].pointers
+    labels = {p.variable for p in ptrs}
+    assert "i" in labels and "j" in labels

@@ -12,6 +12,9 @@ export default function ControlBar() {
   const playbackSpeed = useVizStore((state) => state.playbackSpeed);
   const totalSteps = useVizStore((state) => state.traceResult?.totalSteps ?? 0);
   const actions = useVizStore((state) => state.actions);
+  const canPlayback = totalSteps > 1;
+  const playbackHint =
+    'Step-through playback needs more than one trace frame (Python execution traces many; other languages use a line-by-line static preview).';
 
   return (
     <div className="control-bar">
@@ -21,7 +24,12 @@ export default function ControlBar() {
       <button onClick={actions.prevStep} type="button">
         Prev
       </button>
-      <button onClick={isPlaying ? actions.pause : actions.play} type="button">
+      <button
+        disabled={!canPlayback}
+        onClick={isPlaying ? actions.pause : actions.play}
+        title={canPlayback ? undefined : playbackHint}
+        type="button"
+      >
         {isPlaying ? 'Pause' : 'Play'}
       </button>
       <button onClick={actions.nextStep} type="button">

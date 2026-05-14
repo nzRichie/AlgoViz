@@ -40,7 +40,7 @@ class PythonParsedAST implements ParsedAST {
       type: 'module',
       text: source,
     };
-    this.assignments = extractAssignments(source);
+    this.assignments = [...extractAssignments(source), ...extractSingleParameterDefNames(source)];
   }
 
   linesWithDeclarations(): Map<number, string> {
@@ -98,6 +98,27 @@ function validatePythonSyntax(source: string): TraceError | null {
   }
 
   return null;
+}
+
+/** Declares one gutter pin per `def name(single):` line; multi-parameter defs are skipped. */
+function extractSingleParameterDefNames(source: string): PythonAssignment[] {
+  return source
+    .split(/\r?\n/)
+    .map((line, index) => {
+      const stripped = stripComment(line);
+      const match = /^\s*def\s+[A-Za-z_][\w]*\s*\(\s*([A-Za-z_][\w]*)\s*\)\s*:\s*$/.exec(stripped);
+
+      if (!match?.[1]) {
+        return null;
+      }
+
+      return {
+        name: match[1],
+        expression: '',
+        lineNumber: index + 1,
+      } satisfies PythonAssignment;
+    })
+    .filter((assignment): assignment is PythonAssignment => assignment !== null);
 }
 
 function extractAssignments(source: string): PythonAssignment[] {

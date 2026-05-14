@@ -267,15 +267,57 @@ button {
   padding-bottom: 0.5rem;
 }
 
+.array-panel__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.8rem;
+  color: var(--ctp-subtext0);
+}
+
+.pointer-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.pointer-legend__swatch {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 0.2rem;
+  border: 1px solid var(--ctp-surface1);
+}
+
+.pointer-legend__name {
+  font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, monospace;
+  color: var(--ctp-subtext1);
+}
+
+.pointer-legend__idx {
+  color: var(--ctp-overlay0);
+}
+
 .array-cell-wrap {
   display: grid;
   justify-items: center;
   gap: 0.35rem;
 }
 
-.array-cell-wrap span {
-  color: var(--ctp-subtext0);
-  font-size: 0.8rem;
+.array-cell--pointer {
+  color: var(--ctp-base);
+}
+
+.array-cell--changed {
+  color: var(--ctp-base);
+}
+
+.primitive-cell--changed {
+  color: var(--ctp-base);
+}
+
+.map-value--changed {
+  color: var(--ctp-base);
 }
 
 .matrix-panel {

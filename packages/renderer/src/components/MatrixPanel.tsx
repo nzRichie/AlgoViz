@@ -29,7 +29,10 @@ export default function MatrixPanel({ snapshot }: MatrixPanelProps) {
 
             return (
               <motion.div
-                animate={{ backgroundColor: changed ? 'var(--ctp-mauve)' : 'var(--ctp-surface0)' }}
+                animate={{
+                  backgroundColor: changed ? 'var(--ctp-mauve)' : 'var(--ctp-surface0)',
+                  color: changed ? 'var(--ctp-base)' : 'var(--ctp-text)',
+                }}
                 className={changed ? 'array-cell array-cell--changed' : 'array-cell'}
                 key={`${rowIndex}-${columnIndex}`}
                 transition={{ duration: 0.25 }}

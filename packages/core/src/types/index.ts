@@ -17,9 +17,16 @@ export interface SnapshotItem {
   raw: string;
 }
 
+/** Legend label (e.g. i, j, i+1) and resolved index into the array. */
+export interface ArrayPointer {
+  variable: string;
+  index: number;
+}
+
 export interface ArrayValue {
   kind: 'array';
   items: SnapshotItem[];
+  pointers?: ArrayPointer[];
 }
 
 export interface MatrixValue {

@@ -19,8 +19,11 @@ export default function MapPanel({ snapshot }: MapPanelProps) {
             <div className="map-row" key={key.raw}>
               <span className="map-key">{key.raw}</span>
               <motion.span
-                animate={{ backgroundColor: changed ? 'var(--ctp-mauve)' : 'var(--ctp-surface0)' }}
-                className="map-value"
+                animate={{
+                  backgroundColor: changed ? 'var(--ctp-mauve)' : 'var(--ctp-surface0)',
+                  color: changed ? 'var(--ctp-base)' : 'var(--ctp-text)',
+                }}
+                className={changed ? 'map-value map-value--changed' : 'map-value'}
                 transition={{ duration: 0.25 }}
               >
                 {value.raw}

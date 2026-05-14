@@ -24,6 +24,14 @@ describe('parsePython', () => {
     expect(ast.linesWithDeclarations().get(2)).toBe('dp');
   });
 
+  it('maps a single-parameter def line as a declaration for gutter pinning', async () => {
+    const ast = await parsePython(`def lis(nums):
+    pass
+`);
+
+    expect(ast.linesWithDeclarations().get(1)).toBe('nums');
+  });
+
   it('maps primitive assignments to their 1-based line', async () => {
     const ast = await parsePython('x = 5');
 

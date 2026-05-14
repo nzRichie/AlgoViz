@@ -46,6 +46,58 @@ ALLOWED_BUILTINS["print"] = print
 BLOCKED_TOKENS = ("__", "eval(", "exec(", "compile(", "open(", "import ", "from ")
 
 
+def strip_python_line_comments(line: str) -> str:
+    """Remove ``#`` comments outside string literals (so blocklist ignores English in comments)."""
+    i = 0
+    n = len(line)
+    in_single = in_double = False
+
+    while i < n:
+        c = line[i]
+
+        if not in_single and not in_double:
+            if c == "#":
+                return line[:i]
+            if c == "'":
+                in_single = True
+                i += 1
+                continue
+            if c == '"':
+                in_double = True
+                i += 1
+                continue
+        else:
+            if in_single:
+                if c == "\\" and i + 1 < n:
+                    i += 2
+                    continue
+                if c == "'":
+                    in_single = False
+            elif in_double:
+                if c == "\\" and i + 1 < n:
+                    i += 2
+                    continue
+                if c == '"':
+                    in_double = False
+        i += 1
+
+    return line
+
+
+def validate_source(source: str) -> TraceError | None:
+    for line_number, line in enumerate(source.splitlines(), start=1):
+        code_only = strip_python_line_comments(line)
+        stripped = code_only.strip()
+
+        if any(token in stripped for token in BLOCKED_TOKENS):
+            return TraceError(message="Blocked unsafe operation", line=line_number, kind="sandbox")
+
+        if stripped.startswith(("os.", "sys.", "subprocess.")):
+            return TraceError(message="Blocked unsafe module access", line=line_number, kind="sandbox")
+
+    return None
+
+
 @dataclass(frozen=True)
 class SandboxResult:
     namespace: dict[str, object]
@@ -103,19 +155,6 @@ def run_sandboxed(source: str, trace_callback: TraceCallback | None = None) -> S
         )
 
     return SandboxResult(namespace=namespace, error=error)
-
-
-def validate_source(source: str) -> TraceError | None:
-    for line_number, line in enumerate(source.splitlines(), start=1):
-        stripped = line.strip()
-
-        if any(token in stripped for token in BLOCKED_TOKENS):
-            return TraceError(message="Blocked unsafe operation", line=line_number, kind="sandbox")
-
-        if stripped.startswith(("os.", "sys.", "subprocess.")):
-            return TraceError(message="Blocked unsafe module access", line=line_number, kind="sandbox")
-
-    return None
 
 
 def syntax_error(exc: SyntaxError) -> TraceError:

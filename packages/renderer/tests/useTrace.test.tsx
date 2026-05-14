@@ -14,6 +14,8 @@ describe('useTrace', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
         json: () => Promise.resolve({ language: 'python', variables: [], snapshots: [], totalSteps: 0, error: null }),
       }),
     );
@@ -42,6 +44,8 @@ describe('useTrace', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
         json: () =>
           Promise.resolve({
             language: 'python',
@@ -59,5 +63,24 @@ describe('useTrace', () => {
     });
 
     expect(result.current.error?.message).toBe('bad');
+  });
+
+  it('sets error when response is not ok', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        json: () => Promise.resolve({ detail: 'server boom' }),
+      }),
+    );
+    const { result } = renderHook(() => useTrace());
+
+    await act(async () => {
+      await result.current.trace({ language: 'python', source: 'x = 5', trackedVariables: ['x'] });
+    });
+
+    expect(result.current.error?.message).toBe('server boom');
+    expect(useVizStore.getState().traceResult).toBeNull();
   });
 });

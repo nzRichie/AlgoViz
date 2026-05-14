@@ -4,21 +4,40 @@ import ast
 import copy
 from types import FrameType
 
-from models import ArrayValue, MapValue, PrimitiveValue, SetValue, SnapshotItem, SnapshotValue, StepSnapshot, TraceError
+from languages.array_focus import resolve_persistent_pointers, subscript_labels_on_line
+from models import ArrayPointer, ArrayValue, MapValue, PrimitiveValue, SetValue, SnapshotItem, SnapshotValue, StepSnapshot, TraceError
 from sandbox import run_sandboxed, syntax_error
 
 
 class PythonTracer:
     def trace(self, source: str, tracked: list[str]) -> list[StepSnapshot]:
         snapshots: list[StepSnapshot] = []
+        source_lines = source.splitlines()
+        active_labels: dict[str, list[str]] = {name: [] for name in tracked}
 
         def capture(frame: FrameType, event: str, arg: object):
             if event == "line" and frame.f_code.co_filename == "<algoviz-user-code>":
                 variables: dict[str, SnapshotValue] = {}
+                line_text = ""
+                lineno = frame.f_lineno
+                if 0 < lineno <= len(source_lines):
+                    line_text = source_lines[lineno - 1]
 
                 for name in tracked:
                     if name in frame.f_locals:
-                        variables[name] = serialise_value(copy.deepcopy(frame.f_locals[name]))
+                        snapshot_value = serialise_value(copy.deepcopy(frame.f_locals[name]))
+                        if isinstance(snapshot_value, ArrayValue):
+                            for label in subscript_labels_on_line(line_text, name):
+                                if label not in active_labels[name]:
+                                    active_labels[name].append(label)
+                            arr_len = len(snapshot_value.items)
+                            ptrs = resolve_persistent_pointers(active_labels[name], frame.f_locals, arr_len)
+                            snapshot_value = ArrayValue(
+                                kind="array",
+                                items=snapshot_value.items,
+                                pointers=[ArrayPointer(variable=lab, index=i) for lab, i in ptrs],
+                            )
+                        variables[name] = snapshot_value
 
                 if variables:
                     snapshots.append(

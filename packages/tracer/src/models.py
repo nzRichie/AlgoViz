@@ -18,9 +18,17 @@ class SnapshotItem(BaseModel):
     raw: str
 
 
+class ArrayPointer(BaseModel):
+    """Legend label (e.g. i, j, i+1) and resolved index into the array."""
+
+    variable: str
+    index: int
+
+
 class ArrayValue(BaseModel):
     kind: Literal["array"]
     items: list[SnapshotItem]
+    pointers: list[ArrayPointer] = Field(default_factory=list)
 
 
 class MatrixValue(BaseModel):

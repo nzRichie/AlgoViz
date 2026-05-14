@@ -32,18 +32,23 @@ const examples: Record<SupportedLanguage, string> = {
                 dp[i] = max(dp[i], dp[j] + 1)
         result = max(result, dp[i])
     return result
-`,
-  javascript: `const nums = [1, 3, 5, 7, 9];
-const target = 7;
-let left = 0;
-let right = nums.length - 1;
-let mid = 0;
 
-while (left <= right) {
-  mid = Math.floor((left + right) / 2);
-  if (nums[mid] < target) left = mid + 1;
-  else if (nums[mid] > target) right = mid - 1;
-  else break;
+nums = [3, 1, 4, 1, 5, 9, 2, 6]
+answer = lis(nums)
+`,
+  javascript: `let arr = [5, 1, 4, 2];
+let swapped = true;
+
+while (swapped) {
+  swapped = false;
+  for (let i = 0; i < arr.length - 1; i++) {
+    if (arr[i] > arr[i + 1]) {
+      const tmp = arr[i];
+      arr[i] = arr[i + 1];
+      arr[i + 1] = tmp;
+      swapped = true;
+    }
+  }
 }
 `,
   java: `int[] arr = new int[] {5, 1, 4, 2};
@@ -61,11 +66,19 @@ while (swapped) {
   }
 }
 `,
-  csharp: `var memo = new Dictionary<int, int>();
-int n = 6;
+  csharp: `int[] arr = {5, 1, 4, 2};
+bool swapped = true;
 
-for (int i = 0; i <= n; i++) {
-  memo[i] = i < 2 ? i : memo[i - 1] + memo[i - 2];
+while (swapped) {
+  swapped = false;
+  for (int i = 0; i < arr.Length - 1; i++) {
+    if (arr[i] > arr[i + 1]) {
+      int tmp = arr[i];
+      arr[i] = arr[i + 1];
+      arr[i + 1] = tmp;
+      swapped = true;
+    }
+  }
 }
 `,
 };
@@ -138,9 +151,9 @@ function App() {
               value={language}
             >
               <option value="python">Python: Longest Increasing Subsequence</option>
-              <option value="javascript">JavaScript: Binary Search</option>
+              <option value="javascript">JavaScript: Bubble sort</option>
               <option value="java">Java: Bubble Sort</option>
-              <option value="csharp">C#: Fibonacci Memoisation</option>
+              <option value="csharp">C#: Bubble sort</option>
             </select>
           </label>
         </div>

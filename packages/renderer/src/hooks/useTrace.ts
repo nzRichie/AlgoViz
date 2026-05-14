@@ -28,7 +28,42 @@ export function useTrace(): UseTraceResult {
         },
         body: JSON.stringify(request),
       });
-      const result = (await response.json()) as TraceResult;
+
+      let body: unknown;
+      try {
+        body = await response.json();
+      } catch {
+        useVizStore.getState().actions.reset();
+        setError({
+          message: `Trace request failed (${response.status})`,
+          line: null,
+          kind: 'runtime',
+        });
+        return;
+      }
+
+      if (!response.ok) {
+        const obj = body as Record<string, unknown>;
+        const nestedError = obj.error as TraceError | undefined;
+        const detail = obj.detail;
+        let message: string;
+
+        if (nestedError && typeof nestedError.message === 'string') {
+          message = nestedError.message;
+        } else if (typeof detail === 'string') {
+          message = detail;
+        } else if (Array.isArray(detail)) {
+          message = JSON.stringify(detail);
+        } else {
+          message = `Trace request failed (${response.status})`;
+        }
+
+        useVizStore.getState().actions.reset();
+        setError({ message, line: null, kind: 'runtime' });
+        return;
+      }
+
+      const result = body as TraceResult;
 
       if (result.error) {
         setError(result.error);
