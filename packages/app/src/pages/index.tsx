@@ -2,7 +2,17 @@ import { detectStructures, inferRoles } from '@algoviz/core/detectors';
 import { diffSnapshots } from '@algoviz/core/differ';
 import { parsePython } from '@algoviz/core/parsers';
 import type { DetectedVariable, PinnedVariable, SupportedLanguage, TraceResult, VariableSnapshot } from '@algoviz/core/types';
-import { ArrayPanel, ControlBar, PrimitivePanel } from '@algoviz/renderer/components';
+import {
+  ArrayPanel,
+  ControlBar,
+  GraphPanel,
+  MapPanel,
+  MatrixPanel,
+  PrimitivePanel,
+  SetPanel,
+  StackPanel,
+  TreePanel,
+} from '@algoviz/renderer/components';
 import { useTrace } from '@algoviz/renderer/hooks';
 import { useVizStore } from '@algoviz/renderer/store/vizStore';
 import React, { useEffect, useState } from 'react';
@@ -125,8 +135,32 @@ function App() {
               {snapshotsForStep(traceResult, currentStep).map((snapshot) => {
                 const variable = variables.find((item) => item.name === snapshot.name);
 
-                if (snapshot.type === 'array' || snapshot.type === 'stack') {
+                if (snapshot.type === 'array') {
                   return <ArrayPanel key={snapshot.name} snapshot={snapshot} variable={variable} />;
+                }
+
+                if (snapshot.type === 'matrix') {
+                  return <MatrixPanel key={snapshot.name} snapshot={snapshot} />;
+                }
+
+                if (snapshot.type === 'stack') {
+                  return <StackPanel key={snapshot.name} snapshot={snapshot} />;
+                }
+
+                if (snapshot.type === 'set') {
+                  return <SetPanel key={snapshot.name} snapshot={snapshot} />;
+                }
+
+                if (snapshot.type === 'map') {
+                  return <MapPanel key={snapshot.name} snapshot={snapshot} />;
+                }
+
+                if (snapshot.type === 'tree') {
+                  return <TreePanel key={snapshot.name} snapshot={snapshot} />;
+                }
+
+                if (snapshot.type === 'graph') {
+                  return <GraphPanel key={snapshot.name} snapshot={snapshot} />;
                 }
 
                 return <PrimitivePanel key={snapshot.name} snapshot={snapshot} />;

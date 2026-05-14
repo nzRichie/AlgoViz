@@ -1,3 +1,9 @@
 export { default as ArrayPanel } from './ArrayPanel';
 export { default as ControlBar } from './ControlBar';
+export { default as GraphPanel } from './GraphPanel';
+export { default as MapPanel } from './MapPanel';
+export { default as MatrixPanel } from './MatrixPanel';
 export { default as PrimitivePanel } from './PrimitivePanel';
+export { default as SetPanel } from './SetPanel';
+export { default as StackPanel } from './StackPanel';
+export { default as TreePanel } from './TreePanel';
