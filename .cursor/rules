@@ -1,0 +1,264 @@
+# AlgoViz — Cursor Rules
+
+## Project Identity
+This is **AlgoViz**: a fully local, hostable algorithm visualizer.
+It accepts source code in multiple languages, lets the user pin specific
+variables via a gutter checkbox in the editor, traces execution, and renders
+those variables' step-by-step mutations as animated visual panels.
+
+Architecture: npm monorepo → packages/core | packages/tracer | packages/renderer | packages/app
+
+---
+
+## Non-Negotiables
+
+- **Never skip tests.** Every exported function and component gets a test. If a
+  phase task does not mention tests, write them anyway.
+- **Never modify more than one package at a time** without stating which packages
+  are affected and why at the start of your response.
+- **Never use `any` in TypeScript.** Use `unknown` and narrow it, or define a type.
+- **Never hardcode file paths.** Use path constants or environment variables.
+- **Never leave a TODO without a GitHub-issue-style description:**
+  `// TODO(#issue): <what> — <why blocked>`
+- **Never use hardcoded hex colours in components.** Always use the CSS custom
+  property tokens defined in `packages/app/src/styles/tokens.css`.
+
+---
+
+## Tech Stack Constraints
+
+| Concern          | Tool                              | Notes                                      |
+|------------------|-----------------------------------|--------------------------------------------|
+| Monorepo         | npm workspaces                    | Root `package.json` manages all            |
+| Frontend build   | Vite                              | Dev + optimised prod build                 |
+| UI framework     | React 18 + TypeScript strict      | Functional components + hooks only         |
+| Styling          | Tailwind CSS                      | Extend with Catppuccin Mocha tokens        |
+| Colour theme     | Catppuccin Mocha                  | See token table below — no other palette   |
+| Animation        | Framer Motion                     | Cell transitions and highlights            |
+| Graph/tree viz   | D3.js                             | Only for non-array structures              |
+| Code editor      | CodeMirror 6 (`@codemirror/view`) | Custom gutter extension for variable pins  |
+| State            | Zustand                           | One store per package, no prop drilling    |
+| Frontend tests   | Vitest + React Testing Library    | Co-located `*.test.tsx` files              |
+| Backend          | FastAPI (Python 3.11+)            | Fully local — never binds to 0.0.0.0      |
+| Python tracer    | `sys.settrace`                    | Primary language                           |
+| JS tracer        | Node.js `vm` + Proxy observers    | Called via subprocess from FastAPI         |
+| Java tracer      | Source instrumentation + `javac`  | Called via subprocess from FastAPI         |
+| C# tracer        | Roslyn Scripting API              | Called via subprocess from FastAPI         |
+| Backend tests    | pytest + pytest-asyncio           | Mirror src structure in `/tests`           |
+| Parsing          | tree-sitter (WASM in browser)     | Language-agnostic, one grammar per lang    |
+| Linting          | ESLint (airbnb-ts) + Prettier     | Run before every commit                    |
+| Git commits      | Conventional Commits              | feat/fix/chore/test/docs/refactor          |
+| Hosting          | Docker Compose                    | One container for app, one for tracer      |
+
+---
+
+## Catppuccin Mocha — Colour Tokens
+
+All components must use these CSS custom properties. Define them in
+`packages/app/src/styles/tokens.css` and extend Tailwind's config to expose
+them as utility classes (e.g. `bg-ctp-base`, `text-ctp-text`).
+
+```css
+:root {
+  --ctp-base:      #1e1e2e;
+  --ctp-mantle:    #181825;
+  --ctp-crust:     #11111b;
+  --ctp-surface0:  #313244;
+  --ctp-surface1:  #45475a;
+  --ctp-surface2:  #585b70;
+  --ctp-overlay0:  #6c7086;
+  --ctp-overlay1:  #7f849c;
+  --ctp-overlay2:  #9399b2;
+  --ctp-subtext0:  #a6adc8;
+  --ctp-subtext1:  #bac2de;
+  --ctp-text:      #cdd6f4;
+  --ctp-lavender:  #b4befe;
+  --ctp-blue:      #89b4fa;
+  --ctp-sapphire:  #74c7ec;
+  --ctp-sky:       #89dceb;
+  --ctp-teal:      #94e2d5;
+  --ctp-green:     #a6e3a1;
+  --ctp-yellow:    #f9e2af;
+  --ctp-peach:     #fab387;
+  --ctp-maroon:    #eba0ac;
+  --ctp-red:       #f38ba8;
+  --ctp-mauve:     #cba6f7;
+  --ctp-pink:      #f5c2e7;
+  --ctp-flamingo:  #f2cdcd;
+  --ctp-rosewater: #f5e0dc;
+}
+```
+
+Semantic mappings (enforce throughout):
+- Page background         → `--ctp-base`
+- Panel / card background → `--ctp-mantle` or `--ctp-surface0`
+- Editor background       → `--ctp-crust`
+- Border / divider        → `--ctp-surface1`
+- Muted text / labels     → `--ctp-subtext0`
+- Primary text            → `--ctp-text`
+- Highlighted cell        → `--ctp-mauve` bg, `--ctp-base` text
+- Active/selected accent  → `--ctp-lavender`
+- Error state             → `--ctp-red`
+- Running / success       → `--ctp-green`
+- Pinned gutter marker    → `--ctp-blue`
+- Playback controls bg    → `--ctp-surface1`
+- Primary button          → `--ctp-mauve`
+- Primary button hover    → `--ctp-lavender`
+
+The CodeMirror editor theme must also use Catppuccin Mocha. Use
+`@catppuccin/codemirror` if the package exists; otherwise define a custom
+`EditorView.theme({})` object using the tokens above.
+
+---
+
+## Gutter Variable Selection — Design Contract
+
+The code editor renders a custom CodeMirror 6 gutter to the left of line numbers.
+This gutter shows an interactive marker on every line that contains a variable
+declaration or assignment.
+
+Behaviour rules:
+- Markers appear **only on lines that declare or assign a variable**, detected via
+  the tree-sitter AST after each keystroke (debounced 300 ms)
+- Unselected marker: small hollow circle in `--ctp-overlay0`
+- Selected (pinned) marker: filled circle in `--ctp-blue` with a subtle
+  `--ctp-blue` left-border highlight on the line
+- Clicking a marker toggles its pinned state
+- Multiple variables may be pinned simultaneously
+- Primitives (int, str, bool, float) are pinnable — displayed as a single-cell
+  panel showing their current value as a string representation
+- Pin state lives in a CodeMirror `StateField` — not React state
+- On each editor change, re-run AST detection and refresh which lines have
+  markers; preserve pins on lines that still have a valid declaration
+- Pinned variable names are exposed to the parent React component via a stable
+  callback ref so the parent can read them before submitting a trace request
+- The API request body includes `trackedVariables: string[]` derived from the
+  pinned set; the tracer filters its output to only those variables
+
+---
+
+## File & Folder Conventions
+
+```
+packages/
+  core/
+    src/
+      parsers/          # python.ts, javascript.ts, java.ts, csharp.ts
+      detectors/        # structureDetector.ts, roleInferrer.ts
+      differ/           # snapshotDiffer.ts
+      types/            # index.ts — all shared TS interfaces
+    tests/
+  tracer/
+    src/
+      main.py
+      tracer.py
+      sandbox.py
+      models.py
+      languages/        # python_tracer.py, js_tracer.py, java_tracer.py, csharp_tracer.py
+    tests/
+  renderer/
+    src/
+      components/       # ArrayPanel, MatrixPanel, GraphPanel, PrimitivePanel …
+      hooks/            # usePlayback.ts, useSnapshot.ts, useTrace.ts
+      store/            # vizStore.ts
+      utils/            # diffHighlighter.ts
+    tests/
+  app/
+    src/
+      pages/            # index.tsx
+      components/       # CodeEditor (with gutter), LanguageSelector, ControlBar
+      styles/           # tokens.css, globals.css
+      examples/         # sample algorithms per language
+    tests/
+```
+
+- Component files: `PascalCase.tsx`
+- Hook files: `camelCase.ts` prefixed with `use`
+- Utility files: `camelCase.ts`
+- Test files: mirror source name + `.test.tsx` or `.test.ts`
+- Python files: `snake_case.py`
+
+---
+
+## TypeScript Rules
+
+- `strict: true` always
+- Prefer `interface` for object shapes, `type` for unions and aliases
+- All cross-package interfaces live in `packages/core/src/types/index.ts`
+- Named exports only from utility and type files
+- Default exports allowed only for React components and the FastAPI app object
+
+---
+
+## React Rules
+
+- Functional components only
+- Props interface defined above the component in the same file
+- No component exceeds 150 lines — split if larger
+- Custom hooks must have tests mocking stores or API calls
+- Never fetch inside a component — use a hook or store action
+- CodeMirror instance created with `useRef` + `useEffect` — never re-created on re-render
+
+---
+
+## Testing Rules
+
+- Minimum coverage: **80%** for all packages
+- Unit: one function or component in isolation
+- Integration: parser → detector → snapshot pipeline end-to-end
+- All tests must pass before a phase is marked complete
+- Use `describe` blocks grouped by feature
+- Gutter extension logic tested via CodeMirror `EditorState` directly
+  (pure state machine — no browser required)
+
+---
+
+## Git Discipline
+
+- One commit per logical unit of work
+- Format: `type(scope): short description`
+- Never commit to `main` — feature branches only
+- Branch naming: `phase-1/scaffold`, `phase-2/tracer`, etc.
+- Phase merges only when all tests pass and coverage is met
+
+---
+
+## Agentic Behaviour Rules
+
+- **Before writing code**, state the plan in 3–5 bullets
+- **After completing a task**, list what was created/modified and what tests were added
+- If a task is ambiguous, ask **one clarifying question** rather than assuming
+- If two reasonable options exist, **recommend one and explain why**
+- Do not refactor outside the current task's scope unless it causes a type error or test failure
+- When adding a dependency, justify it in one sentence in the commit message
+
+---
+
+## Hosting & Deployment Rules
+
+- Hostable via **Docker Compose** with a single `docker compose up`
+- `packages/app` → **nginx** container serving built Vite static assets
+- `packages/tracer` → **uvicorn** container running FastAPI
+- The tracer container is **never exposed on the host** — nginx proxies `/api/*`
+  to the tracer internally within the Docker bridge network
+- Both containers must define a **health check** in `docker-compose.yml`
+- All ports, CORS origins, and environment config live in a `.env` file; a
+  `.env.example` with every key documented must be committed to the repo
+- A `Makefile` at root exposes: `make dev`, `make build`, `make up`, `make down`, `make test`
+- Production nginx config must include gzip compression and correct cache
+  headers (`immutable` for hashed assets, `no-cache` for `index.html`)
+
+---
+
+## Security Rules (Local Execution)
+
+- All user code runs inside language-specific sandboxes — no raw `exec()` or `eval()`
+- Python: `RestrictedPython` — block file I/O, network, subprocess
+- JavaScript: Node.js `vm` module with a restricted context — no `require`,
+  no `process`, no `fs`
+- Java: compile to temp dir, run with a `SecurityManager` policy blocking
+  file and network access
+- C#: Roslyn scripting with restricted imports — no `System.IO`, no `System.Net`
+- All tracers: hard-kill execution after **5 seconds**
+- FastAPI binds to `127.0.0.1` in dev; in Docker it binds to `0.0.0.0` only
+  within the internal Docker network — never exposed directly on the host

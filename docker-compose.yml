@@ -1,0 +1,25 @@
+services:
+  app:
+    image: nginx:alpine
+    ports:
+      - "${APP_PORT:-5173}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:80"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      tracer:
+        condition: service_healthy
+
+  tracer:
+    image: python:3.11-slim
+    expose:
+      - "${TRACER_PORT:-8000}"
+    environment:
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:5173}
+    healthcheck:
+      test: ["CMD", "python", "-c", "print('ok')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
