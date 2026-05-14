@@ -127,6 +127,23 @@ function App() {
       </header>
 
       <section className="editor-panel" aria-label="Code editor">
+        <div className="editor-toolbar">
+          <label>
+            Load Example
+            <select
+              onChange={(event) => {
+                const nextLanguage = event.target.value as SupportedLanguage;
+                changeLanguage(nextLanguage);
+              }}
+              value={language}
+            >
+              <option value="python">Python: Longest Increasing Subsequence</option>
+              <option value="javascript">JavaScript: Binary Search</option>
+              <option value="java">Java: Bubble Sort</option>
+              <option value="csharp">C#: Fibonacci Memoisation</option>
+            </select>
+          </label>
+        </div>
         <CodeEditor
           defaultValue={examples[language]}
           highlightedLineNumber={highlightedLineNumber}

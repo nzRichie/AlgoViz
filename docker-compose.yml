@@ -1,10 +1,12 @@
 services:
   app:
-    image: nginx:alpine
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
     ports:
-      - "${APP_PORT:-5173}:80"
+      - "${APP_PORT}:80"
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:80"]
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -13,13 +15,15 @@ services:
         condition: service_healthy
 
   tracer:
-    image: python:3.11-slim
+    build:
+      context: .
+      dockerfile: docker/tracer/Dockerfile
     expose:
-      - "${TRACER_PORT:-8000}"
+      - "8000"
     environment:
-      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:5173}
+      - CORS_ORIGIN=${CORS_ORIGIN}
     healthcheck:
-      test: ["CMD", "python", "-c", "print('ok')"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
       timeout: 5s
       retries: 3

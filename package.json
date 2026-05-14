@@ -9,7 +9,7 @@
     "packages/app"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace @algoviz/app",
+    "dev": "concurrently \"npm run dev --workspace @algoviz/app\" \"sh -c '.venv/bin/uvicorn main:app --app-dir packages/tracer/src --host 127.0.0.1 --port ${TRACER_PORT:-8000}'\"",
     "build": "npm run build --workspaces",
     "lint": "eslint . --ext .ts,.tsx",
     "typecheck": "npm run typecheck --workspaces",

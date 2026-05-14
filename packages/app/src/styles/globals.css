@@ -96,6 +96,28 @@ button {
   background: var(--ctp-mantle);
 }
 
+.editor-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  border-bottom: 1px solid var(--ctp-surface1);
+  padding: 0.75rem;
+}
+
+.editor-toolbar label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--ctp-subtext0);
+}
+
+.editor-toolbar select {
+  border: 1px solid var(--ctp-surface1);
+  border-radius: 999px;
+  background: var(--ctp-surface0);
+  color: var(--ctp-text);
+  padding: 0.45rem 0.75rem;
+}
+
 .code-editor {
   width: 100%;
   min-height: 400px;
