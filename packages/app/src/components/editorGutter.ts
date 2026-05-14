@@ -3,7 +3,7 @@ import { parseCSharp, parseJava, parseJavaScript, parsePython } from '@algoviz/c
 import type { DataStructureType, PinnedVariable, SupportedLanguage } from '@algoviz/core/types';
 import type { Extension } from '@codemirror/state';
 import { EditorState, StateEffect, StateField } from '@codemirror/state';
-import { EditorView, gutter, GutterMarker, ViewPlugin } from '@codemirror/view';
+import { EditorView, gutter, GutterMarker, ViewPlugin, type ViewUpdate } from '@codemirror/view';
 
 interface DeclarationInfo {
   name: string;
@@ -113,13 +113,19 @@ export function variableGutter(options: VariableGutterOptions = {}): Extension {
       }
 
       private async refreshDeclarations() {
-        const declarations = await buildDeclarationInfo(
-          this.view.state.doc.toString(),
-          options.getLanguage?.() ?? 'python',
-        );
-        this.view.dispatch({
-          effects: setDeclarations.of(declarations),
-        });
+        try {
+          const declarations = await buildDeclarationInfo(
+            this.view.state.doc.toString(),
+            options.getLanguage?.() ?? 'python',
+          );
+          this.view.dispatch({
+            effects: setDeclarations.of(declarations),
+          });
+        } catch {
+          this.view.dispatch({
+            effects: setDeclarations.of(new Map()),
+          });
+        }
       }
     },
   );
@@ -130,6 +136,13 @@ export function variableGutter(options: VariableGutterOptions = {}): Extension {
     parserPlugin,
     gutter({
       class: 'cm-variable-gutter',
+      /** Without this, syncGutters never runs when only declaration/pin state changes. */
+      lineMarkerChange(update: ViewUpdate) {
+        return (
+          update.startState.field(declarationLineField) !== update.state.field(declarationLineField) ||
+          update.startState.field(pinnedLineField) !== update.state.field(pinnedLineField)
+        );
+      },
       lineMarker(view, line) {
         const lineNumber = view.state.doc.lineAt(line.from).number;
         const declarations = view.state.field(declarationLineField);
