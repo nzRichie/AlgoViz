@@ -1,6 +1,6 @@
 import { detectStructures } from '@algoviz/core/detectors';
-import { parsePython } from '@algoviz/core/parsers';
-import type { DataStructureType, PinnedVariable } from '@algoviz/core/types';
+import { parseCSharp, parseJava, parseJavaScript, parsePython } from '@algoviz/core/parsers';
+import type { DataStructureType, PinnedVariable, SupportedLanguage } from '@algoviz/core/types';
 import type { Extension } from '@codemirror/state';
 import { EditorState, StateEffect, StateField } from '@codemirror/state';
 import { EditorView, gutter, GutterMarker, ViewPlugin } from '@codemirror/view';
@@ -12,6 +12,7 @@ interface DeclarationInfo {
 
 interface VariableGutterOptions {
   onPinsChange?: (pins: PinnedVariable[]) => void;
+  getLanguage?: () => SupportedLanguage;
 }
 
 export const togglePin = StateEffect.define<number>();
@@ -112,7 +113,10 @@ export function variableGutter(options: VariableGutterOptions = {}): Extension {
       }
 
       private async refreshDeclarations() {
-        const declarations = await buildDeclarationInfo(this.view.state.doc.toString());
+        const declarations = await buildDeclarationInfo(
+          this.view.state.doc.toString(),
+          options.getLanguage?.() ?? 'python',
+        );
         this.view.dispatch({
           effects: setDeclarations.of(declarations),
         });
@@ -185,8 +189,11 @@ export function getPinnedVariables(state: EditorState): PinnedVariable[] {
     .filter((pin): pin is PinnedVariable => pin !== null);
 }
 
-async function buildDeclarationInfo(source: string): Promise<Map<number, DeclarationInfo>> {
-  const ast = await parsePython(source);
+async function buildDeclarationInfo(
+  source: string,
+  language: SupportedLanguage,
+): Promise<Map<number, DeclarationInfo>> {
+  const ast = await parseForLanguage(language, source);
   const declaredNames = [...ast.linesWithDeclarations().values()];
   const detected = detectStructures(ast, declaredNames);
   const byName = new Map(detected.map((variable) => [variable.name, variable.type]));
@@ -200,4 +207,20 @@ async function buildDeclarationInfo(source: string): Promise<Map<number, Declara
       },
     ]),
   );
+}
+
+function parseForLanguage(language: SupportedLanguage, source: string) {
+  if (language === 'javascript') {
+    return parseJavaScript(source);
+  }
+
+  if (language === 'java') {
+    return parseJava(source);
+  }
+
+  if (language === 'csharp') {
+    return parseCSharp(source);
+  }
+
+  return parsePython(source);
 }

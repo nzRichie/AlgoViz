@@ -4,6 +4,9 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from languages.csharp_tracer import CSharpTraceError, CSharpTracer
+from languages.java_tracer import JavaTraceError, JavaTracer
+from languages.js_tracer import JavaScriptTraceError, JavaScriptTracer
 from languages.python_tracer import PythonTracer, TraceRuntimeError
 from models import DetectedVariable, TraceError, TraceRequest, TraceResult, VariableSnapshot
 
@@ -36,16 +39,7 @@ def trace(raw_request: RawTraceRequest) -> TraceResult:
 
     request = TraceRequest.model_validate(raw_request.model_dump())
 
-    if request.language != "python":
-        return TraceResult(
-            language=request.language,
-            variables=[],
-            snapshots=[],
-            totalSteps=0,
-            error=TraceError(message="Language tracer is not implemented yet", line=None, kind="runtime"),
-        )
-
-    tracer = PythonTracer()
+    tracer = tracer_for_language(request.language)
     syntax_error = tracer.validate_syntax(request.source)
 
     if syntax_error:
@@ -53,7 +47,7 @@ def trace(raw_request: RawTraceRequest) -> TraceResult:
 
     try:
         steps = tracer.trace(request.source, request.trackedVariables)
-    except TraceRuntimeError as exc:
+    except (TraceRuntimeError, JavaScriptTraceError, JavaTraceError, CSharpTraceError) as exc:
         return empty_result(request, exc.error)
     except Exception as exc:
         return empty_result(request, TraceError(message=str(exc), line=None, kind="runtime"))
@@ -93,3 +87,16 @@ def empty_result(request: TraceRequest, error: TraceError) -> TraceResult:
         totalSteps=0,
         error=error,
     )
+
+
+def tracer_for_language(language: str):
+    if language == "javascript":
+        return JavaScriptTracer()
+
+    if language == "java":
+        return JavaTracer()
+
+    if language == "csharp":
+        return CSharpTracer()
+
+    return PythonTracer()

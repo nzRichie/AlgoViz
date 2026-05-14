@@ -13,9 +13,9 @@ interface LanguageSelectorProps {
 
 const languages: LanguageOption[] = [
   { label: 'Python', value: 'python', enabled: true },
-  { label: 'JavaScript', value: 'javascript', enabled: false },
-  { label: 'Java', value: 'java', enabled: false },
-  { label: 'C#', value: 'csharp', enabled: false },
+  { label: 'JavaScript', value: 'javascript', enabled: true },
+  { label: 'Java', value: 'java', enabled: true },
+  { label: 'C#', value: 'csharp', enabled: true },
 ];
 
 export default function LanguageSelector({ value, onChange }: LanguageSelectorProps) {

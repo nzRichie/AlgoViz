@@ -31,9 +31,9 @@ export default function CodeEditor({
 }: CodeEditorProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
-  const callbacksRef = useRef({ onPinsChange, onSourceChange });
+  const callbacksRef = useRef({ language, onPinsChange, onSourceChange });
 
-  callbacksRef.current = { onPinsChange, onSourceChange };
+  callbacksRef.current = { language, onPinsChange, onSourceChange };
 
   useEffect(() => {
     if (!containerRef.current || viewRef.current) {
@@ -51,6 +51,7 @@ export default function CodeEditor({
           editorTheme,
           languageCompartment.of(languageExtension(language)),
           variableGutter({
+            getLanguage: () => callbacksRef.current.language,
             onPinsChange: (pins) => callbacksRef.current.onPinsChange(pins),
           }),
           sourceLineHighlightField,
@@ -79,6 +80,22 @@ export default function CodeEditor({
       effects: languageCompartment.reconfigure(languageExtension(language)),
     });
   }, [language]);
+
+  useEffect(() => {
+    const view = viewRef.current;
+
+    if (!view || view.state.doc.toString() === defaultValue) {
+      return;
+    }
+
+    view.dispatch({
+      changes: {
+        from: 0,
+        to: view.state.doc.length,
+        insert: defaultValue,
+      },
+    });
+  }, [defaultValue]);
 
   useEffect(() => {
     const view = viewRef.current;

@@ -1,6 +1,7 @@
 import { detectStructures, inferRoles } from '@algoviz/core/detectors';
 import { diffSnapshots } from '@algoviz/core/differ';
-import { parsePython } from '@algoviz/core/parsers';
+import { parseCSharp, parseJava, parseJavaScript, parsePython } from '@algoviz/core/parsers';
+import type { ParsedAST } from '@algoviz/core/parsers';
 import type { DetectedVariable, PinnedVariable, SupportedLanguage, TraceResult, VariableSnapshot } from '@algoviz/core/types';
 import {
   ArrayPanel,
@@ -21,7 +22,8 @@ import { createRoot } from 'react-dom/client';
 import { CodeEditor, LanguageSelector } from '../components';
 import '../styles/globals.css';
 
-const defaultSource = `def lis(nums):
+const examples: Record<SupportedLanguage, string> = {
+  python: `def lis(nums):
     dp = [1] * len(nums)
     result = 1
     for i in range(len(nums)):
@@ -30,11 +32,55 @@ const defaultSource = `def lis(nums):
                 dp[i] = max(dp[i], dp[j] + 1)
         result = max(result, dp[i])
     return result
-`;
+`,
+  javascript: `const nums = [1, 3, 5, 7, 9];
+const target = 7;
+let left = 0;
+let right = nums.length - 1;
+let mid = 0;
+
+while (left <= right) {
+  mid = Math.floor((left + right) / 2);
+  if (nums[mid] < target) left = mid + 1;
+  else if (nums[mid] > target) right = mid - 1;
+  else break;
+}
+`,
+  java: `int[] arr = new int[] {5, 1, 4, 2};
+boolean swapped = true;
+
+while (swapped) {
+  swapped = false;
+  for (int i = 0; i < arr.length - 1; i++) {
+    if (arr[i] > arr[i + 1]) {
+      int tmp = arr[i];
+      arr[i] = arr[i + 1];
+      arr[i + 1] = tmp;
+      swapped = true;
+    }
+  }
+}
+`,
+  csharp: `var memo = new Dictionary<int, int>();
+int n = 6;
+
+for (int i = 0; i <= n; i++) {
+  memo[i] = i < 2 ? i : memo[i - 1] + memo[i - 2];
+}
+`,
+};
 
 function App() {
   const [language, setLanguage] = useState<SupportedLanguage>('python');
-  const [source, setSource] = useState(defaultSource);
+  const [source, setSource] = useState(examples.python);
+  function changeLanguage(nextLanguage: SupportedLanguage) {
+    setLanguage(nextLanguage);
+    setSource(examples[nextLanguage]);
+    setPins([]);
+    setVariables([]);
+    setTrace(emptyTraceResult(nextLanguage));
+  }
+
   const [pins, setPins] = useState<PinnedVariable[]>([]);
   const [variables, setVariables] = useState<DetectedVariable[]>([]);
   const { trace, isLoading, error } = useTrace();
@@ -47,13 +93,13 @@ function App() {
     let cancelled = false;
 
     async function refreshVariables() {
-      if (language !== 'python' || pins.length === 0) {
+      if (pins.length === 0) {
         setVariables([]);
         return;
       }
 
       try {
-        const ast = await parsePython(source);
+        const ast = await parseForLanguage(language, source);
         const detected = inferRoles(detectStructures(ast, pins.map((pin) => pin.name)));
 
         if (!cancelled) {
@@ -77,12 +123,12 @@ function App() {
     <main className="app-shell">
       <header className="top-bar">
         <h1>AlgoViz</h1>
-        <LanguageSelector value={language} onChange={setLanguage} />
+        <LanguageSelector value={language} onChange={changeLanguage} />
       </header>
 
       <section className="editor-panel" aria-label="Code editor">
         <CodeEditor
-          defaultValue={defaultSource}
+          defaultValue={examples[language]}
           highlightedLineNumber={highlightedLineNumber}
           language={language}
           onPinsChange={setPins}
@@ -173,6 +219,22 @@ function App() {
       </section>
     </main>
   );
+}
+
+function parseForLanguage(language: SupportedLanguage, source: string): Promise<ParsedAST> {
+  if (language === 'javascript') {
+    return parseJavaScript(source);
+  }
+
+  if (language === 'java') {
+    return parseJava(source);
+  }
+
+  if (language === 'csharp') {
+    return parseCSharp(source);
+  }
+
+  return parsePython(source);
 }
 
 function snapshotsForStep(result: TraceResult, step: number): VariableSnapshot[] {
