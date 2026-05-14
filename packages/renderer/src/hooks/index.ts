@@ -1,1 +1,1 @@
-export {};
+export { useTrace } from './useTrace';

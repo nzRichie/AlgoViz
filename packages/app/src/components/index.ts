@@ -9,3 +9,4 @@ export {
   variableGutter,
 } from './editorGutter';
 export { default as LanguageSelector } from './LanguageSelector';
+export { setHighlightedLine, sourceLineHighlightField } from './sourceLineHighlight';

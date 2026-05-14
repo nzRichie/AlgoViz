@@ -1,1 +1,1 @@
-export {};
+export { diffSnapshots } from './snapshotDiffer';

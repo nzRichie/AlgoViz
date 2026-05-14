@@ -1,6 +1,10 @@
 import { detectStructures, inferRoles } from '@algoviz/core/detectors';
+import { diffSnapshots } from '@algoviz/core/differ';
 import { parsePython } from '@algoviz/core/parsers';
-import type { DetectedVariable, PinnedVariable, SupportedLanguage } from '@algoviz/core/types';
+import type { DetectedVariable, PinnedVariable, SupportedLanguage, TraceResult, VariableSnapshot } from '@algoviz/core/types';
+import { ArrayPanel, ControlBar, PrimitivePanel } from '@algoviz/renderer/components';
+import { useTrace } from '@algoviz/renderer/hooks';
+import { useVizStore } from '@algoviz/renderer/store/vizStore';
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
@@ -23,6 +27,11 @@ function App() {
   const [source, setSource] = useState(defaultSource);
   const [pins, setPins] = useState<PinnedVariable[]>([]);
   const [variables, setVariables] = useState<DetectedVariable[]>([]);
+  const { trace, isLoading, error } = useTrace();
+  const traceResult = useVizStore((state) => state.traceResult);
+  const currentStep = useVizStore((state) => state.currentStep);
+  const setTrace = useVizStore((state) => state.actions.setTrace);
+  const highlightedLineNumber = traceResult?.snapshots[currentStep]?.[0]?.lineNumber ?? null;
 
   useEffect(() => {
     let cancelled = false;
@@ -64,6 +73,7 @@ function App() {
       <section className="editor-panel" aria-label="Code editor">
         <CodeEditor
           defaultValue={defaultSource}
+          highlightedLineNumber={highlightedLineNumber}
           language={language}
           onPinsChange={setPins}
           onSourceChange={setSource}
@@ -86,6 +96,14 @@ function App() {
       <button
         className="run-button"
         disabled={pins.length === 0}
+        onClick={() => {
+          setTrace(emptyTraceResult(language));
+          void trace({
+            language,
+            source,
+            trackedVariables: pins.map((pin) => pin.name),
+          });
+        }}
         title={pins.length === 0 ? 'Pin at least one variable' : 'Run & Visualise'}
         type="button"
       >
@@ -93,10 +111,51 @@ function App() {
       </button>
 
       <section className="visualisation-panel" aria-label="Visualisation panel">
-        <p>Visualisation panels will appear here after tracing is implemented.</p>
+        {isLoading ? <div className="skeleton-panel" /> : null}
+        {error ? (
+          <div className="error-card">
+            <strong>Trace failed</strong>
+            <p>{error.message}</p>
+          </div>
+        ) : null}
+        {traceResult && traceResult.totalSteps > 0 ? (
+          <>
+            <ControlBar />
+            <div className="panel-grid">
+              {snapshotsForStep(traceResult, currentStep).map((snapshot) => {
+                const variable = variables.find((item) => item.name === snapshot.name);
+
+                if (snapshot.type === 'array' || snapshot.type === 'stack') {
+                  return <ArrayPanel key={snapshot.name} snapshot={snapshot} variable={variable} />;
+                }
+
+                return <PrimitivePanel key={snapshot.name} snapshot={snapshot} />;
+              })}
+            </div>
+          </>
+        ) : !isLoading && !error ? (
+          <p>Visualisation panels will appear here after tracing is implemented.</p>
+        ) : null}
       </section>
     </main>
   );
+}
+
+function snapshotsForStep(result: TraceResult, step: number): VariableSnapshot[] {
+  return (result.snapshots[step] ?? []).map((snapshot) => {
+    const previous = result.snapshots[step - 1]?.find((item) => item.name === snapshot.name) ?? null;
+    return diffSnapshots(previous, snapshot);
+  });
+}
+
+function emptyTraceResult(language: SupportedLanguage): TraceResult {
+  return {
+    language,
+    variables: [],
+    snapshots: [],
+    totalSteps: 0,
+    error: null,
+  };
 }
 
 const rootElement = document.getElementById('root');

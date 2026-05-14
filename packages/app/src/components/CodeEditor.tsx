@@ -8,6 +8,7 @@ import { useEffect, useRef } from 'react';
 
 import { editorTheme } from './editorTheme';
 import { getPinnedVariables, variableGutter } from './editorGutter';
+import { setHighlightedLine, sourceLineHighlightField } from './sourceLineHighlight';
 
 export interface CodeEditorProps {
   language: SupportedLanguage;
@@ -15,6 +16,7 @@ export interface CodeEditorProps {
   onPinsChange: (pins: PinnedVariable[]) => void;
   onSourceChange?: (source: string) => void;
   onEditorReady?: (view: EditorView) => void;
+  highlightedLineNumber?: number | null;
 }
 
 const languageCompartment = new Compartment();
@@ -25,6 +27,7 @@ export default function CodeEditor({
   onPinsChange,
   onSourceChange,
   onEditorReady,
+  highlightedLineNumber = null,
 }: CodeEditorProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -50,6 +53,7 @@ export default function CodeEditor({
           variableGutter({
             onPinsChange: (pins) => callbacksRef.current.onPinsChange(pins),
           }),
+          sourceLineHighlightField,
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
               callbacksRef.current.onSourceChange?.(update.state.doc.toString());
@@ -75,6 +79,20 @@ export default function CodeEditor({
       effects: languageCompartment.reconfigure(languageExtension(language)),
     });
   }, [language]);
+
+  useEffect(() => {
+    const view = viewRef.current;
+
+    if (!view) {
+      return;
+    }
+
+    const maxLine = view.state.doc.lines;
+    const safeLine =
+      highlightedLineNumber && highlightedLineNumber > 0 ? Math.min(highlightedLineNumber, maxLine) : null;
+
+    view.dispatch({ effects: setHighlightedLine.of(safeLine) });
+  }, [highlightedLineNumber]);
 
   return <div className="code-editor" ref={containerRef} />;
 }
